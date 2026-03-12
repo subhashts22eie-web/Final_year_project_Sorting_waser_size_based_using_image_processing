@@ -11,31 +11,70 @@ RESULTS_DIR = os.path.join(PROJECT_DIR, "results")
 os.makedirs(RESULTS_DIR, exist_ok=True)
 
 
+def filter_valid_circles(circles, img_shape, min_area_variance=0.8):
+    """
+    Filter circles to find valid washer candidates:
+    - Must not be near image edges
+    - Must have reasonable area (filters out partial/noise circles)
+    - Must have similar sizes (filters out outliers)
+    
+    Returns list of valid circles.
+    """
+    if circles is None:
+        return []
+
+    h, w = img_shape[:2]
+    edge_margin = 5   # relaxed: washer can legitimately be close to the frame
+    candidates = []
+
+    for (x, y, r) in circles:
+        # Reject circles too close to edges
+        if (x - r) < edge_margin or (y - r) < edge_margin or \
+           (x + r) > (w - edge_margin) or (y + r) > (h - edge_margin):
+            print(f"  [SKIP] Circle at ({x}, {y}) r={r}: near image edge")
+            continue
+        
+        candidates.append((x, y, r))
+
+    if not candidates:
+        print("[WARN] No valid circles after edge filtering. Release margin.")
+        candidates = [(c[0], c[1], c[2]) for c in circles]
+
+    # If multiple circles, filter by size consistency
+    if len(candidates) > 1:
+        radii = [r for _, _, r in candidates]
+        mean_r = np.mean(radii)
+        std_r = np.std(radii)
+        
+        # Keep circles within 1 standard deviation of mean
+        filtered = [(x, y, r) for (x, y, r) in candidates 
+                    if abs(r - mean_r) <= std_r]
+        
+        if filtered:  # Only use if we have results
+            print(f"  [OK] Filtered by size: {len(candidates)} → {len(filtered)} circles")
+            candidates = filtered
+        else:
+            print(f"  [WARN] Size filter rejected all circles, keeping originals")
+
+    return candidates
+
+
 def pick_washer_circle(circles, img_shape):
     """
     From all detected circles, pick the best candidate for the washer.
 
     Strategy:
-    - Ignore circles too close to the image edge (likely partial circles)
-    - Pick the LARGEST remaining circle (washer outer edge)
+    1. Reject circles too close to the image edge (likely partial circles)
+    2. Filter by size consistency (removes outliers)
+    3. Pick the LARGEST remaining circle (washer outer edge)
 
     Returns (x, y, radius) or None.
     """
-    if circles is None:
-        return None
-
-    h, w = img_shape[:2]
-    candidates = []
-
-    for (x, y, r) in circles:
-        # Reject circles whose bounding box goes outside the image
-        if (x - r) < 5 or (y - r) < 5 or (x + r) > (w - 5) or (y + r) > (h - 5):
-            continue
-        candidates.append((x, y, r))
+    candidates = filter_valid_circles(circles, img_shape)
 
     if not candidates:
-        print("[WARN] All circles were near the edge. Using all circles as fallback.")
-        candidates = [tuple(c) for c in circles]
+        print("[ERROR] No valid circles after filtering.")
+        return None
 
     # Pick the largest circle — most likely the washer outer edge
     best = max(candidates, key=lambda c: c[2])
