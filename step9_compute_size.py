@@ -15,6 +15,35 @@ def pixels_to_mm(pixel_diameter, mm_per_pixel):
     return round(pixel_diameter * mm_per_pixel, 2)
 
 
+def evaluate_target_size(measured_mm, target_mm, tolerance_mm=0.5):
+    """Return pass/fail for a user-defined target size."""
+    measured_mm = float(measured_mm)
+    target_mm = float(target_mm)
+    tolerance_mm = float(tolerance_mm)
+
+    deviation_mm = round(measured_mm - target_mm, 2)
+    abs_error = abs(deviation_mm)
+    is_ok = bool(abs_error <= tolerance_mm)
+
+    if deviation_mm > 0:
+        direction = "OVERSIZE"
+    elif deviation_mm < 0:
+        direction = "UNDERSIZE"
+    else:
+        direction = "ON_TARGET"
+
+    return {
+        "is_ok": is_ok,
+        "target_mm": round(target_mm, 2),
+        "measured_mm": round(measured_mm, 2),
+        "tolerance_mm": round(tolerance_mm, 2),
+        "deviation_mm": deviation_mm,
+        "direction": direction,
+        "min_ok_mm": round(target_mm - tolerance_mm, 2),
+        "max_ok_mm": round(target_mm + tolerance_mm, 2),
+    }
+
+
 def match_standard_size(measured_mm, tolerance=3.0):
     """
     Match measured mm to the closest standard washer size.
@@ -66,6 +95,42 @@ def compute_washer_size(image_path=None):
     matched = match_standard_size(measured_mm)
 
     return measured_mm, matched
+
+
+def compute_washer_size_target(target_mm, tolerance_mm=0.5, image_path=None):
+    """
+    Target-based flow (NO fixed standard list):
+    Detect washer -> load calibration -> convert px to mm -> compare to target.
+
+    Returns (measured_mm, evaluation_dict) or (None, None) on failure.
+    """
+    calib = load_calibration()
+    if calib is None:
+        return None, None
+
+    mm_per_pixel = calib["mm_per_pixel"]
+
+    kwargs = {"image_path": image_path} if image_path else {}
+    img, circle, pixel_diameter = detect_washer(**kwargs)
+
+    if circle is None:
+        print("[ERROR] No washer detected.")
+        return None, None
+
+    measured_mm = pixels_to_mm(pixel_diameter, mm_per_pixel)
+    evaluation = evaluate_target_size(measured_mm, target_mm, tolerance_mm)
+
+    print(f"[INFO] Pixel diameter  : {pixel_diameter}px")
+    print(f"[INFO] mm per pixel    : {mm_per_pixel}")
+    print(f"[INFO] Measured size   : {measured_mm}mm")
+    status = "PASS" if evaluation["is_ok"] else f"FAIL ({evaluation['direction']})"
+    print(
+        f"[INFO] Target check    : {status} "
+        f"target={evaluation['target_mm']}mm tol=+/-{evaluation['tolerance_mm']}mm "
+        f"dev={evaluation['deviation_mm']:+.2f}mm"
+    )
+
+    return measured_mm, evaluation
 
 
 if __name__ == "__main__":
