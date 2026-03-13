@@ -1,0 +1,1264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Washer Size Identifier</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    :root {
+      --bg-dark: #0d1117;
+      --bg-card: #161b22;
+      --border: #30363d;
+      --text-primary: #c9d1d9;
+      --text-secondary: #8b949e;
+      --text-muted: #484f58;
+      --blue: #58a6ff;
+      --green: #3fb950;
+      --red: #f85149;
+      --orange: #fb8500;
+      --teal: #15aabf;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen", "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif;
+      background-color: var(--bg-dark);
+      color: var(--text-primary);
+      line-height: 1.6;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 40px;
+      padding-bottom: 20px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    h1 {
+      font-size: 2rem;
+      margin-bottom: 8px;
+      color: var(--blue);
+    }
+
+    .server-info {
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+      margin-top: 12px;
+    }
+
+    .server-ip {
+      color: var(--green);
+      font-weight: 600;
+      font-family: "Courier New", monospace;
+    }
+
+    .card {
+      background-color: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 24px;
+      margin-bottom: 24px;
+    }
+
+    .card-title {
+      font-size: 1.1rem;
+      font-weight: 600;
+      margin-bottom: 18px;
+      color: var(--blue);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 4px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .badge-status {
+      padding: 6px 14px;
+      font-size: 0.8rem;
+    }
+
+    .badge-ok {
+      background: rgba(63, 185, 80, 0.15);
+      color: var(--green);
+    }
+
+    .badge-error {
+      background: rgba(248, 81, 73, 0.15);
+      color: var(--red);
+    }
+
+    /* ── Buttons ── */
+    .btn {
+      padding: 10px 18px;
+      border: none;
+      border-radius: 7px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .btn:hover:not(:disabled) {
+      transform: translate(0, -2px);
+    }
+
+    .btn:active:not(:disabled) {
+      transform: translate(0, 0);
+    }
+
+    .btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .btn-primary {
+      background: var(--blue);
+      color: var(--bg-dark);
+    }
+
+    .btn-success {
+      background: var(--green);
+      color: var(--bg-dark);
+    }
+
+    .btn-warning {
+      background: var(--orange);
+      color: var(--bg-dark);
+    }
+
+    .btn-danger {
+      background: var(--red);
+      color: white;
+    }
+
+    .btn-secondary {
+      background: var(--border);
+      color: var(--text-primary);
+    }
+
+    /* ── Form Inputs ── */
+    .form-group {
+      margin-bottom: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .form-label {
+      font-size: 0.9rem;
+      font-weight: 500;
+      color: var(--text-primary);
+    }
+
+    .form-input {
+      padding: 12px 14px;
+      background: var(--bg-dark);
+      border: 1px solid var(--border);
+      border-radius: 7px;
+      color: var(--text-primary);
+      font-size: 1rem;
+      outline: none;
+      transition: border 0.2s ease;
+    }
+
+    .form-input:focus {
+      border-color: var(--blue);
+    }
+
+    .form-row {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      align-items: flex-end;
+    }
+
+    .form-row .form-group {
+      margin-bottom: 0;
+      flex: 1;
+      min-width: 150px;
+    }
+
+    /* ── Spinner ── */
+    .spin {
+      display: inline-block;
+      width: 14px;
+      height: 14px;
+      border: 2px solid currentColor;
+      border-top-color: transparent;
+      border-radius: 50%;
+      animation: spin 0.6s linear infinite;
+    }
+
+    .spin.hidden {
+      display: none;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* ── Image Gallery ── */
+    .image-container {
+      margin-top: 20px;
+      padding-top: 20px;
+      border-top: 1px solid var(--border);
+    }
+
+    .image-label {
+      font-size: 0.75rem;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      margin-bottom: 12px;
+      display: block;
+    }
+
+    .image-wrapper {
+      background: var(--bg-dark);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow: hidden;
+      display: inline-block;
+      max-width: 100%;
+    }
+
+    .image-wrapper img {
+      width: 100%;
+      height: auto;
+      display: block;
+      max-width: 600px;
+    }
+
+    .image-placeholder {
+      width: 100%;
+      height: 200px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-muted);
+      font-size: 0.9rem;
+    }
+
+    /* ── State Indicators ── */
+    .state {
+      padding: 12px 14px;
+      background: rgba(88, 166, 255, 0.1);
+      border: 1px solid rgba(88, 166, 255, 0.3);
+      border-radius: 7px;
+      color: var(--blue);
+      font-size: 0.9rem;
+      margin-top: 12px;
+    }
+
+    .state-success {
+      background: rgba(63, 185, 80, 0.1);
+      border-color: rgba(63, 185, 80, 0.3);
+      color: var(--green);
+    }
+
+    .state-error {
+      background: rgba(248, 81, 73, 0.1);
+      border-color: rgba(248, 81, 73, 0.3);
+      color: var(--red);
+    }
+
+    .calibrated-display {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-top: 12px;
+    }
+
+    .calib-stat {
+      background: var(--bg-dark);
+      border: 1px solid var(--border);
+      padding: 12px;
+      border-radius: 7px;
+    }
+
+    .calib-stat-label {
+      font-size: 0.75rem;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 4px;
+    }
+
+    .calib-stat-value {
+      font-size: 1.1rem;
+      font-weight: 600;
+      font-family: "Courier New", monospace;
+      color: var(--blue);
+    }
+
+    /* ── Detection Results ── */
+    .detection-result {
+      background: var(--bg-dark);
+      border: 2px solid var(--border);
+      border-radius: 8px;
+      padding: 20px;
+      margin-top: 16px;
+      text-align: center;
+    }
+
+    .result-size-display {
+      font-size: 3.5rem;
+      font-weight: 700;
+      color: var(--blue);
+      margin: 12px 0;
+      font-family: "Courier New", monospace;
+      min-height: 70px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .result-size-display.loading {
+      color: var(--text-secondary);
+    }
+
+    .result-size-display.error {
+      color: var(--red);
+    }
+
+    .result-badge {
+      display: inline-block;
+      padding: 8px 16px;
+      border-radius: 5px;
+      font-weight: 700;
+      font-size: 0.9rem;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      margin: 12px 0;
+    }
+
+    .result-badge.match {
+      background: rgba(63, 185, 80, 0.2);
+      color: var(--green);
+      border: 1px solid rgba(63, 185, 80, 0.4);
+    }
+
+    .result-badge.nomatch {
+      background: rgba(248, 81, 73, 0.2);
+      color: var(--red);
+      border: 1px solid rgba(248, 81, 73, 0.4);
+    }
+
+    .result-badge.idle {
+      background: rgba(88, 166, 255, 0.2);
+      color: var(--blue);
+      border: 1px solid rgba(88, 166, 255, 0.4);
+    }
+
+    .result-stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+      gap: 12px;
+      margin-top: 16px;
+    }
+
+    .stat-box {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      padding: 10px;
+      border-radius: 6px;
+      text-align: center;
+    }
+
+    .stat-label {
+      font-size: 0.7rem;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .stat-value {
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--blue);
+      font-family: "Courier New", monospace;
+      margin-top: 4px;
+    }
+
+    .counters {
+      text-align: center;
+      padding: 12px;
+      background: rgba(21, 170, 191, 0.1);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      margin-top: 12px;
+    }
+
+    .counters-label {
+      font-size: 0.8rem;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .counters-value {
+      font-size: 1.3rem;
+      font-weight: 700;
+      color: var(--teal);
+      font-family: "Courier New", monospace;
+      margin-top: 6px;
+    }
+
+    /* ── Sections ── */
+    .section-disabled {
+      opacity: 0.6;
+      pointer-events: none;
+    }
+
+    .section-enabled {
+      opacity: 1;
+      pointer-events: all;
+    }
+
+    /* ── Log ── */
+    .log-container {
+      background: var(--bg-dark);
+      border: 1px solid var(--border);
+      border-radius: 7px;
+      padding: 14px;
+      margin-top: 24px;
+      max-height: 200px;
+      overflow-y: auto;
+    }
+
+    .log-entry {
+      font-family: "Courier New", monospace;
+      font-size: 0.8rem;
+      color: var(--text-secondary);
+      margin-bottom: 6px;
+      padding: 4px 0;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .log-entry:last-child {
+      border-bottom: none;
+      margin-bottom: 0;
+    }
+
+    .log-entry.error {
+      color: var(--red);
+    }
+
+    .log-entry.success {
+      color: var(--green);
+    }
+
+    .log-entry.info {
+      color: var(--blue);
+    }
+
+    /* ── Dashboard ── */
+    .dashboard-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    .dashboard-stat {
+      background: linear-gradient(135deg, rgba(88, 166, 255, 0.1), rgba(21, 170, 191, 0.1));
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 18px;
+      text-align: center;
+    }
+
+    .dashboard-stat-icon {
+      font-size: 2rem;
+      margin-bottom: 8px;
+    }
+
+    .dashboard-stat-label {
+      font-size: 0.75rem;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 8px;
+    }
+
+    .dashboard-stat-value {
+      font-size: 1.8rem;
+      font-weight: 700;
+      color: var(--blue);
+      font-family: "Courier New", monospace;
+    }
+
+    .dashboard-stat-detail {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      margin-top: 8px;
+    }
+
+    /* ── Toast Notifications ── */
+    .toast-container {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      z-index: 9999;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      max-width: 400px;
+    }
+
+    .toast {
+      background: white;
+      color: #0d1117;
+      padding: 16px 20px;
+      border-radius: 12px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      animation: slideIn 0.3s ease-out;
+      min-width: 280px;
+    }
+
+    .toast-icon {
+      font-size: 1.3rem;
+      font-weight: 700;
+      min-width: 24px;
+      text-align: center;
+    }
+
+    .toast-success {
+      border-left: 4px solid var(--green);
+    }
+
+    .toast-success .toast-icon {
+      color: var(--green);
+    }
+
+    .toast-error {
+      border-left: 4px solid var(--red);
+    }
+
+    .toast-error .toast-icon {
+      color: var(--red);
+    }
+
+    .toast-info {
+      border-left: 4px solid var(--blue);
+    }
+
+    .toast-info .toast-icon {
+      color: var(--blue);
+    }
+
+    .toast-message {
+      flex: 1;
+      font-size: 0.9rem;
+      font-weight: 500;
+    }
+
+    .toast-close {
+      cursor: pointer;
+      color: #8b949e;
+      font-size: 1.2rem;
+      line-height: 1;
+      background: none;
+      border: none;
+      padding: 0;
+      transition: color 0.2s;
+    }
+
+    .toast-close:hover {
+      color: #0d1117;
+    }
+
+    @keyframes slideIn {
+      from {
+        transform: translateX(400px);
+        opacity: 0;
+      }
+      to {
+        transform: translateX(0);
+        opacity: 1;
+      }
+    }
+
+    @keyframes slideOut {
+      from {
+        transform: translateX(0);
+        opacity: 1;
+      }
+      to {
+        transform: translateX(400px);
+        opacity: 0;
+      }
+    }
+
+    .toast.removing {
+      animation: slideOut 0.3s ease-out forwards;
+    }
+
+    /* ── Responsive ── */
+    @media (max-width: 768px) {
+      body {
+        padding: 12px;
+      }
+
+      .card {
+        padding: 16px;
+      }
+
+      h1 {
+        font-size: 1.5rem;
+      }
+
+      .result-size-display {
+        font-size: 2.5rem;
+      }
+
+      .form-row {
+        flex-direction: column;
+      }
+
+      .form-row .form-group {
+        min-width: 100%;
+      }
+
+      .calibrated-display {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- Toast Notification Container -->
+    <div class="toast-container" id="toast-container"></div>
+    <!-- Header with Server Info -->
+    <header>
+      <h1>🔧 Washer Size Identifier</h1>
+      <div class="server-info">
+        Server: <span class="server-ip" id="server-ip">Detecting...</span>
+      </div>
+    </header>
+
+    <!-- ══════════════════════════════════════════════════════════════════════════ -->
+    <!-- DASHBOARD -->
+    <!-- ══════════════════════════════════════════════════════════════════════════ -->
+    <div class="dashboard-grid">
+      <div class="dashboard-stat">
+        <div class="dashboard-stat-icon">⚙️</div>
+        <div class="dashboard-stat-label">Calibration Status</div>
+        <div class="dashboard-stat-value" id="dash-calib-status">—</div>
+        <div class="dashboard-stat-detail" id="dash-calib-detail">Not Calibrated</div>
+      </div>
+      <div class="dashboard-stat">
+        <div class="dashboard-stat-icon">🎯</div>
+        <div class="dashboard-stat-label">Target Size</div>
+        <div class="dashboard-stat-value" id="dash-target-size">—</div>
+        <div class="dashboard-stat-detail" id="dash-target-detail">Not Set</div>
+      </div>
+      <div class="dashboard-stat">
+        <div class="dashboard-stat-icon">📊</div>
+        <div class="dashboard-stat-label">Total Scanned</div>
+        <div class="dashboard-stat-value" id="dash-total">0</div>
+        <div class="dashboard-stat-detail" id="dash-total-detail">Detections</div>
+      </div>
+      <div class="dashboard-stat">
+        <div class="dashboard-stat-icon">✓</div>
+        <div class="dashboard-stat-label">Success Rate</div>
+        <div class="dashboard-stat-value" id="dash-success-rate">0%</div>
+        <div class="dashboard-stat-detail" id="dash-success-detail">Matched</div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════════════════════════ -->
+    <!-- STEP 1: CALIBRATION PANEL -->
+    <!-- ══════════════════════════════════════════════════════════════════════════ -->
+    <div class="card" id="calib-panel">
+      <div class="card-title">
+        ⚽ Step 1 — System Calibration
+        <span class="badge badge-status badge-error" id="calib-badge">NOT CALIBRATED</span>
+      </div>
+
+      <div class="form-row">
+        <button class="btn btn-primary" id="btn-calib-capture" onclick="doCaptureCalib()">
+          <span class="spin hidden" id="spin-calib-capture"></span>
+          📸 Capture Reference
+        </button>
+      </div>
+
+      <div id="calib-capture-image" class="image-container" style="display: none;">
+        <span class="image-label">Captured Reference Image</span>
+        <div class="image-wrapper">
+          <img id="img-calib-capture" src="" alt="Captured reference">
+        </div>
+      </div>
+
+      <div class="form-row" style="margin-top: 16px;">
+        <div class="form-group">
+          <label class="form-label">Reference Washer Size (mm)</label>
+          <input class="form-input" id="input-calib-size" type="number" min="1" max="100" step="0.5" placeholder="e.g., 25">
+        </div>
+        <button class="btn btn-success" id="btn-run-calib" onclick="doRunCalibration()" style="margin-top: auto;">
+          <span class="spin hidden" id="spin-run-calib"></span>
+          ✓ Run Calibration
+        </button>
+      </div>
+
+      <div id="calib-result-image" class="image-container" style="display: none;">
+        <span class="image-label">Calibration Result</span>
+        <div class="image-wrapper">
+          <img id="img-calib-result" src="" alt="Calibration result">
+        </div>
+      </div>
+
+      <div id="calib-info" style="display: none;">
+        <div class="state state-success">
+          ✓ Calibration successful and saved to system
+        </div>
+        <div class="calibrated-display">
+          <div class="calib-stat">
+            <div class="calib-stat-label">mm per pixel</div>
+            <div class="calib-stat-value" id="calib-mm-per-px">—</div>
+          </div>
+          <div class="calib-stat">
+            <div class="calib-stat-label">Reference: mm → px</div>
+            <div class="calib-stat-value" id="calib-ref-info">—</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════════════════════════ -->
+    <!-- STEP 2: DETECTION PANEL (disabled until calibration complete) -->
+    <!-- ══════════════════════════════════════════════════════════════════════════ -->
+    <div class="card section-disabled" id="detect-panel">
+      <div class="card-title">
+        🎯 Step 2 — Washer Detection
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Required Washer Size (mm)</label>
+        <div class="form-row">
+          <div class="form-group">
+            <input class="form-input" id="input-target-size" type="number" min="1" max="100" step="0.5" placeholder="e.g., 25">
+          </div>
+          <button class="btn btn-primary" id="btn-set-target" onclick="setTargetSize()">
+            ✓ Set Target
+          </button>
+        </div>
+      </div>
+
+      <div id="target-set-info" style="display: none;" class="state state-success">
+        Target set: <strong id="target-display">—</strong> mm
+      </div>
+
+      <div class="form-row" style="margin-top: 16px;">
+        <button class="btn btn-warning" id="btn-detect-capture" onclick="doCaptureDetect()" disabled>
+          <span class="spin hidden" id="spin-detect-capture"></span>
+          📸 Capture
+        </button>
+        <button class="btn btn-success" id="btn-detect-run" onclick="doDetect()" disabled>
+          <span class="spin hidden" id="spin-detect-run"></span>
+          🔍 Detect Size
+        </button>
+      </div>
+
+      <div id="detect-capture-image" class="image-container" style="display: none;">
+        <span class="image-label">Captured Image</span>
+        <div class="image-wrapper">
+          <img id="img-detect-capture" src="" alt="Captured image">
+        </div>
+      </div>
+
+      <div id="detection-result" class="detection-result">
+        <div style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">
+          Detected Size
+        </div>
+        <div class="result-size-display loading" id="result-size">—</div>
+        <div class="result-badge idle" id="result-badge">READY</div>
+
+        <div class="result-stats">
+          <div class="stat-box">
+            <div class="stat-label">Measured</div>
+            <div class="stat-value" id="stat-measured">— mm</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-label">Deviation</div>
+            <div class="stat-value" id="stat-deviation">— mm</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-label">Pixels</div>
+            <div class="stat-value" id="stat-pixels">— px</div>
+          </div>
+        </div>
+
+        <div class="counters">
+          <div class="counters-label">Matched / Total Scanned</div>
+          <div class="counters-value"><span id="count-matched">0</span> / <span id="count-total">0</span></div>
+        </div>
+      </div>
+
+      <div id="detect-result-image" class="image-container" style="display: none;">
+        <span class="image-label">Detection Result</span>
+        <div class="image-wrapper">
+          <img id="img-detect-result" src="" alt="Detection result">
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════════════════════════ -->
+    <!-- LOG PANEL -->
+    <!-- ══════════════════════════════════════════════════════════════════════════ -->
+    <div class="log-container">
+      <div class="log-entry info">System initialized. Detecting server...</div>
+      <div id="log" style="display: none;"></div>
+    </div>
+  </div>
+
+  <script>
+    // ────────────────────────────────────────────────────────────────────────────
+    // Constants
+    // ────────────────────────────────────────────────────────────────────────────
+
+    const TOLERANCE = 3.0;
+    let API_BASE = "";
+    let targetMM = null;
+    let matchCount = 0;
+    let totalCount = 0;
+    let isCalibrated = false;
+
+    // ────────────────────────────────────────────────────────────────────────────
+    // Auto IP Detection
+    // ────────────────────────────────────────────────────────────────────────────
+
+    function detectServerIP() {
+      const protocol = window.location.protocol;
+      const hostname = window.location.hostname;
+      const port = window.location.port || (protocol === 'https:' ? '443' : '80');
+      API_BASE = `${protocol}//${hostname}:${port}`;
+
+      const displayIP = hostname === 'localhost' || hostname === '127.0.0.1'
+        ? `${hostname}:${port}`
+        : `http://${hostname}:${port}`;
+
+      document.getElementById('server-ip').textContent = displayIP;
+      logInfo(`Server: ${API_BASE}`);
+    }
+
+    // ────────────────────────────────────────────────────────────────────────────
+    // Logging
+    // ────────────────────────────────────────────────────────────────────────────
+
+    function logInfo(msg) {
+      addLog(msg, 'info');
+    }
+
+    function logSuccess(msg) {
+      addLog(msg, 'success');
+    }
+
+    function logError(msg) {
+      addLog(msg, 'error');
+    }
+
+    function addLog(msg, type = 'info') {
+      const logDiv = document.getElementById('log');
+      if (!logDiv.style || logDiv.style.display === 'none') {
+        logDiv.style.display = 'block';
+      }
+      const entry = document.createElement('div');
+      entry.className = `log-entry ${type}`;
+      entry.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+      logDiv.appendChild(entry);
+      logDiv.parentElement.scrollTop = logDiv.parentElement.scrollHeight;
+    }
+
+    // ────────────────────────────────────────────────────────────────────────────
+    // Toast Notifications
+    // ────────────────────────────────────────────────────────────────────────────
+
+    function showToast(message, type = 'info', duration = 4000) {
+      const container = document.getElementById('toast-container');
+      const toast = document.createElement('div');
+      toast.className = `toast toast-${type}`;
+
+      const iconMap = {
+        success: '✓',
+        error: '✕',
+        info: 'ℹ'
+      };
+
+      toast.innerHTML = `
+        <div class="toast-icon">${iconMap[type]}</div>
+        <div class="toast-message">${message}</div>
+        <button class="toast-close" onclick="this.parentElement.remove()">×</button>
+      `;
+
+      container.appendChild(toast);
+
+      if (duration > 0) {
+        setTimeout(() => {
+          if (toast.parentElement) {
+            toast.classList.add('removing');
+            setTimeout(() => toast.remove(), 300);
+          }
+        }, duration);
+      }
+    }
+
+    function showSuccess(message) {
+      showToast(message, 'success', 4000);
+    }
+
+    function showError(message) {
+      showToast(message, 'error', 5000);
+    }
+
+    function showInfo(message) {
+      showToast(message, 'info', 3000);
+    }
+
+    // ────────────────────────────────────────────────────────────────────────────
+    // Dashboard Updates
+    // ────────────────────────────────────────────────────────────────────────────
+
+    function updateDashboard() {
+      // Update target size
+      if (targetMM !== null) {
+        document.getElementById('dash-target-size').textContent = targetMM;
+        document.getElementById('dash-target-detail').textContent = 'mm (Set)';
+      }
+
+      // Update counters
+      document.getElementById('dash-total').textContent = totalCount;
+      const successRate = totalCount > 0 ? Math.round((matchCount / totalCount) * 100) : 0;
+      document.getElementById('dash-success-rate').textContent = successRate + '%';
+      document.getElementById('dash-success-detail').textContent = `${matchCount} / ${totalCount}`;
+    }
+
+    // ────────────────────────────────────────────────────────────────────────────
+    // Utilities
+    // ────────────────────────────────────────────────────────────────────────────
+
+    function setLoading(btnId, spinId, isLoading) {
+      const btn = document.getElementById(btnId);
+      const spin = document.getElementById(spinId);
+      btn.disabled = isLoading;
+      if (isLoading) {
+        spin.classList.remove('hidden');
+      } else {
+        spin.classList.add('hidden');
+      }
+    }
+
+    function refreshImage(imgId, endpointPath, timestamp = true) {
+      const img = document.getElementById(imgId);
+      const url = `${API_BASE}${endpointPath}${timestamp ? '?t=' + Date.now() : ''}`;
+      img.src = url;
+    }
+
+    // ────────────────────────────────────────────────────────────────────────────
+    // Calibration
+    // ────────────────────────────────────────────────────────────────────────────
+
+    async function loadCalibrationStatus() {
+      try {
+        const res = await fetch(`${API_BASE}/calibration/status`);
+        const data = await res.json();
+
+        if (data.calibrated) {
+          isCalibrated = true;
+          showCalibrationSuccess(data);
+          enableDetectionPanel();
+          document.getElementById('dash-calib-status').textContent = 'READY';
+          document.getElementById('dash-calib-detail').textContent = `${data.mm_per_pixel.toFixed(6)} mm/px`;
+        } else {
+          isCalibrated = false;
+          document.getElementById('dash-calib-status').textContent = 'PENDING';
+          document.getElementById('dash-calib-detail').textContent = 'Not Calibrated';
+        }
+      } catch (e) {
+        logError(`Failed to load calibration: ${e.message}`);
+      }
+    }
+
+    async function doCaptureCalib() {
+      setLoading('btn-calib-capture', 'spin-calib-capture', true);
+      logInfo('Capturing calibration reference image...');
+
+      try {
+        const res = await fetch(`${API_BASE}/capture`);
+        if (!res.ok) {
+          const text = await res.text();
+          throw new Error(text);
+        }
+        const container = document.getElementById('calib-capture-image');
+        container.style.display = 'block';
+        refreshImage('img-calib-capture', '/image/capture');
+        logSuccess('Reference image captured. Enter known size and run calibration.');
+        showSuccess('Reference image captured');
+      } catch (e) {
+        logError(`Capture failed: ${e.message}`);
+        showError(`Capture failed: ${e.message}`);
+      }
+      setLoading('btn-calib-capture', 'spin-calib-capture', false);
+    }
+
+    async function doRunCalibration() {
+      const sizeStr = document.getElementById('input-calib-size').value.trim();
+      if (!sizeStr) {
+        logError('Enter a valid washer size in mm.');
+        showError('Enter a valid washer size');
+        return;
+      }
+
+      const realMM = parseFloat(sizeStr);
+      if (isNaN(realMM) || realMM <= 0) {
+        logError('Size must be a positive number.');
+        showError('Size must be a positive number');
+        return;
+      }
+
+      setLoading('btn-run-calib', 'spin-run-calib', true);
+      logInfo(`Running calibration with reference size: ${realMM}mm...`);
+      showInfo('Running calibration...');
+
+      try {
+        const res = await fetch(`${API_BASE}/calibrate`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ real_mm: realMM })
+        });
+        const data = await res.json();
+
+        if (!data.ok) {
+          throw new Error(data.error || 'Calibration failed');
+        }
+
+        logSuccess(`Calibration completed: ${data.mm_per_pixel.toFixed(6)} mm/px`);
+        showCalibrationSuccess(data);
+        enableDetectionPanel();
+        isCalibrated = true;
+
+        const container = document.getElementById('calib-result-image');
+        container.style.display = 'block';
+        refreshImage('img-calib-result', '/image/calibration');
+
+        document.getElementById('dash-calib-status').textContent = 'READY';
+        document.getElementById('dash-calib-detail').textContent = `${data.mm_per_pixel.toFixed(6)} mm/px`;
+
+        showSuccess('Calibration successful! System ready for detection.');
+      } catch (e) {
+        logError(`Calibration error: ${e.message}`);
+        showError(`Calibration error: ${e.message}`);
+        isCalibrated = false;
+      }
+
+      setLoading('btn-run-calib', 'spin-run-calib', false);
+    }
+
+    function showCalibrationSuccess(data) {
+      const badge = document.getElementById('calib-badge');
+      badge.className = 'badge badge-status badge-ok';
+      badge.textContent = 'CALIBRATED';
+
+      const info = document.getElementById('calib-info');
+      info.style.display = 'block';
+
+      document.getElementById('calib-mm-per-px').textContent =
+        data.mm_per_pixel.toFixed(6);
+
+      document.getElementById('calib-ref-info').textContent =
+        `${data.real_diameter_mm}mm → ${data.pixel_diameter}px`;
+    }
+
+    // ────────────────────────────────────────────────────────────────────────────
+    // Detection
+    // ────────────────────────────────────────────────────────────────────────────
+
+    function enableDetectionPanel() {
+      const panel = document.getElementById('detect-panel');
+      panel.classList.remove('section-disabled');
+      panel.classList.add('section-enabled');
+    }
+
+    function setTargetSize() {
+      const sizeStr = document.getElementById('input-target-size').value.trim();
+      if (!sizeStr) {
+        logError('Enter a valid target size in mm.');
+        showError('Enter a valid target size');
+        return;
+      }
+
+      targetMM = parseFloat(sizeStr);
+      if (isNaN(targetMM) || targetMM <= 0) {
+        logError('Size must be a positive number.');
+        showError('Size must be a positive number');
+        return;
+      }
+
+      document.getElementById('target-set-info').style.display = 'block';
+      document.getElementById('target-display').textContent = targetMM;
+
+      document.getElementById('btn-detect-capture').disabled = false;
+      document.getElementById('btn-detect-run').disabled = false;
+
+      logSuccess(`Target set: ${targetMM}mm. Ready to capture and detect.`);
+      updateDashboard();
+      showSuccess(`Target size set to ${targetMM}mm`);
+    }
+
+    async function doCaptureDetect() {
+      if (!isCalibrated) {
+        logError('System not calibrated. Calibrate first.');
+        showError('System not calibrated. Calibrate first.');
+        return;
+      }
+
+      setLoading('btn-detect-capture', 'spin-detect-capture', true);
+      logInfo('Capturing detection image...');
+      showInfo('Capturing image...');
+
+      try {
+        const res = await fetch(`${API_BASE}/capture`);
+        if (!res.ok) {
+          const text = await res.text();
+          throw new Error(text);
+        }
+        const container = document.getElementById('detect-capture-image');
+        container.style.display = 'block';
+        refreshImage('img-detect-capture', '/image/capture');
+        logSuccess('Image captured. Click "Detect Size" to analyze.');
+        showSuccess('Image captured successfully');
+      } catch (e) {
+        logError(`Capture failed: ${e.message}`);
+        showError(`Capture failed: ${e.message}`);
+      }
+
+      setLoading('btn-detect-capture', 'spin-detect-capture', false);
+    }
+
+    async function doDetect() {
+      if (!isCalibrated) {
+        logError('System not calibrated.');
+        showError('System not calibrated. Calibrate first.');
+        return;
+      }
+
+      if (targetMM === null) {
+        logError('Set a target size first.');
+        showError('Set a target size first.');
+        return;
+      }
+
+      setLoading('btn-detect-run', 'spin-detect-run', true);
+      logInfo('Running detection...');
+      showInfo('Analyzing washer...');
+
+      const sizeEl = document.getElementById('result-size');
+      const badgeEl = document.getElementById('result-badge');
+      sizeEl.className = 'result-size-display loading';
+      sizeEl.textContent = '...';
+      badgeEl.className = 'result-badge idle';
+      badgeEl.textContent = 'DETECTING...';
+
+      try {
+        const res = await fetch(`${API_BASE}/detect?target=${targetMM}`);
+        const data = await res.json();
+
+        if (!data.ok) {
+          throw new Error(data.error || 'Detection failed');
+        }
+
+        const detected = data.matched_size;
+        const measured = data.measured_mm;
+        const pixels = data.pixel_diameter;
+        const deviation = data.deviation_mm;
+        const isMatch = data.is_match;
+
+        // Update counters
+        totalCount++;
+        if (isMatch) matchCount++;
+        document.getElementById('count-matched').textContent = matchCount;
+        document.getElementById('count-total').textContent = totalCount;
+
+        // Size display
+        sizeEl.className = 'result-size-display';
+        sizeEl.textContent = detected;
+
+        // Badge
+        badgeEl.className = `result-badge ${isMatch ? 'match' : 'nomatch'}`;
+        badgeEl.textContent = isMatch ? '✓ MATCH' : '✗ NO MATCH';
+
+        // Stats
+        document.getElementById('stat-measured').textContent = measured.toFixed(2) + ' mm';
+        document.getElementById('stat-deviation').textContent = deviation.toFixed(2) + ' mm';
+        document.getElementById('stat-pixels').textContent = pixels + ' px';
+
+        // Result image
+        const imgContainer = document.getElementById('detect-result-image');
+        imgContainer.style.display = 'block';
+        refreshImage('img-detect-result', '/image/result');
+
+        // Update dashboard
+        updateDashboard();
+
+        logSuccess(
+          `Detected: ${detected}mm | Measured: ${measured.toFixed(2)}mm | ${isMatch ? 'MATCH' : 'NO MATCH'} (${matchCount}/${totalCount})`
+        );
+
+        // Show toast based on match result
+        if (isMatch) {
+          showSuccess(`✓ MATCH! Detected ${detected}mm (Deviation: ${Math.abs(deviation).toFixed(2)}mm)`);
+        } else {
+          showError(`✗ NO MATCH - Detected ${detected}mm (Target: ${targetMM}mm, Deviation: ${Math.abs(deviation).toFixed(2)}mm)`);
+        }
+      } catch (e) {
+        sizeEl.className = 'result-size-display error';
+        sizeEl.textContent = 'ERR';
+        badgeEl.className = 'result-badge idle';
+        badgeEl.textContent = 'FAILED';
+        logError(`Detection error: ${e.message}`);
+        showError(`Detection failed: ${e.message}`);
+      }
+
+      setLoading('btn-detect-run', 'spin-detect-run', false);
+    }
+
+    // ────────────────────────────────────────────────────────────────────────────
+    // Initialization on Page Load
+    // ────────────────────────────────────────────────────────────────────────────
+
+    document.addEventListener('DOMContentLoaded', () => {
+      detectServerIP();
+      loadCalibrationStatus();
+      updateDashboard();
+    });
+  </script>
+</body>
+</html>
