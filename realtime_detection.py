@@ -286,23 +286,18 @@ class RealtimeDetectionEngine:
                         print(f"[RealtimeDetectionEngine] DETECTED circle at {self.detected_circle}")
 
                 elif self.state == "DETECTED":
+                    # Keep the original detection timer running from first detection.
+                    # If contour is briefly lost due to noise/motion blur, do not reset timing.
                     if len(circular_objects) > 0:
-                        # Object still present
                         obj = max(circular_objects, key=lambda o: o['area'])
                         self.detected_circle = (obj['x'], obj['y'], obj['radius'])
 
-                        elapsed = time.time() - self.detection_start_time
-                        if elapsed >= self.STABLE_TIME:
-                            # Object stable - move to processing
-                            self.state = "PROCESSING"
-                            self.state_start_time = time.time()
-                            print(f"[RealtimeDetectionEngine] PROCESSING (stable for {elapsed:.1f}s)")
-                    else:
-                        # Object disappeared
-                        self.state = "MONITORING"
+                    elapsed = time.time() - self.detection_start_time
+                    if elapsed >= self.STABLE_TIME:
+                        # Wait complete -> capture once in PROCESSING.
+                        self.state = "PROCESSING"
                         self.state_start_time = time.time()
-                        self.detected_circle = None
-                        print("[RealtimeDetectionEngine] Object disappeared -> MONITORING")
+                        print(f"[RealtimeDetectionEngine] PROCESSING (waited {elapsed:.1f}s)")
 
                 elif self.state == "PROCESSING":
                     # Save current frame and run detection

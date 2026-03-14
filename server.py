@@ -122,7 +122,8 @@ def auto_processing_worker():
 
     print("[SERVER] Auto processing worker started")
     while not auto_stop_event.is_set():
-        if auto_processing_enabled and current_conveyor_cmd == "START" and desired_target_mm is not None:
+        realtime_active = (realtime_engine is not None and realtime_engine.is_enabled)
+        if auto_processing_enabled and current_conveyor_cmd == "START" and desired_target_mm is not None and not realtime_active:
             response, status = run_detection(target_mm=desired_target_mm)
             latest_sort_result = {
                 **response,
@@ -467,7 +468,11 @@ def cmd_set():
             return jsonify({"ok": True, "command": current_conveyor_cmd})
 
         current_conveyor_cmd = cmd
-        auto_processing_enabled = (current_conveyor_cmd == "START")
+        # Keep periodic auto-processing disabled while real-time engine is active.
+        auto_processing_enabled = (
+            current_conveyor_cmd == "START" and
+            (realtime_engine is None or not realtime_engine.is_enabled)
+        )
 
         # Handle real-time engine state
         if cmd == "STOP":
@@ -480,6 +485,8 @@ def cmd_set():
         elif cmd == "START":
             # START: Re-enable real-time engine if target is set
             if desired_target_mm is not None and realtime_engine is not None:
+                realtime_engine.STABLE_TIME = 2.0
+                realtime_engine.COOLDOWN_TIME = 6.0
                 realtime_engine.enable(target_mm=desired_target_mm)
                 print(f"[SERVER] Conveyor STARTED. Real-time engine re-enabled with target: {desired_target_mm}mm")
             else:
@@ -512,11 +519,14 @@ def target_set():
 
     desired_target_mm = target
     current_conveyor_cmd = "START"
-    auto_processing_enabled = True
+    # Use real-time state machine only: detect -> 2s stable -> single capture -> 6s cooldown.
+    auto_processing_enabled = False
     start_auto_processing_worker()
 
     # Enable real-time detection engine
     if realtime_engine is not None:
+        realtime_engine.STABLE_TIME = 2.0
+        realtime_engine.COOLDOWN_TIME = 6.0
         realtime_engine.enable(target_mm=target)
         print(f"[SERVER] Real-time engine enabled with target: {target}mm")
 
