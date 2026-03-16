@@ -17,6 +17,8 @@ from step7_washer_detection import detect_washer
 from step8_calibration import load_calibration
 from step9_compute_size import pixels_to_mm, match_standard_size
 
+ANGLE_MATCH_TOLERANCE_MM = 3.0
+
 # ══════════════════════════════════════════════════════════════════════════════
 # CONFIGURATION
 # ══════════════════════════════════════════════════════════════════════════════
@@ -193,16 +195,15 @@ class RealtimeDetectionEngine:
 
             # Classify angle (for sorting)
             if self.target_mm is not None:
-                target_int = int(round(float(self.target_mm)))
-                size_int = int(round(float(final_size)))
-                if size_int == target_int:
-                    angle, relation = 0, "EQUAL"
-                elif size_int < target_int:
-                    angle, relation = 90, "LESS"
+                deviation = measured_mm - float(self.target_mm)
+                if abs(deviation) <= ANGLE_MATCH_TOLERANCE_MM:
+                    angle, relation = 90, "EQUAL"
+                elif deviation < 0:
+                    angle, relation = 180, "LESS"
                 else:
-                    angle, relation = 180, "GREATER"
+                    angle, relation = 0, "GREATER"
             else:
-                angle, relation = 0, "EQUAL"
+                angle, relation = 90, "EQUAL"
 
             # Save annotated result
             x, y, r = circle

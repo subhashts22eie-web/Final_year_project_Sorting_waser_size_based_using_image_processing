@@ -64,11 +64,11 @@
 
 ### Step 1: Prepare Arduino Code (2 min)
 ```
-1. Open: ESP32_Controller.ino
+1. Open: esp32_conveyor_servo_controller.ino
 2. Update 3 lines:
    - WiFi SSID: "Subhash"
    - WiFi Password: "12233447"
-   - Server IP: "http://10.121.22.234:5000"
+   - Server IP: "10.121.22.234" (PC running server.py)
 3. Save file
 ```
 
@@ -102,7 +102,7 @@
 5. Watch:
    - Web UI shows: 🟢 MONITORING → 🟨 DETECTED → 🔵 PROCESSING
    - Serial shows: ▶ CONVEYOR STARTED
-   - Serial shows: 🔄 Servo → 0° (matches target angle)
+   - Servo mapping: 90° = target hit (EQUAL), 180° = LESS, 0° = GREATER
 6. Success! System works! 🎉
 ```
 
@@ -150,7 +150,7 @@ d:\Waser Size Identifier\
 │   └── SYSTEM_STATUS.md           ← Architecture overview
 │
 ├── 💾 MAIN CODE:
-│   ├── ESP32_Controller.ino       ← Arduino firmware (UPLOAD THIS!)
+│   ├── esp32_conveyor_servo_controller.ino  ← Arduino firmware (UPLOAD THIS!)
 │   ├── server.py                  ← Flask server (ALREADY WORKING)
 │   ├── realtime_detection.py      ← Detection engine (ALREADY WORKING)
 │   └── templates/index.html       ← Web UI (ALREADY WORKING)
@@ -187,8 +187,8 @@ Your PC (Server)
 │  ESP32 (Arduino Code)                │
 │  ├─ Polls /cmd every 500ms           │
 │  ├─ Polls /sort/decision every 1s    │
-│  ├─ Controls GPIO27 (Conveyor)       │
-│  └─ Controls GPIO26 (Servo)          │
+│  ├─ Controls GPIO26 (Conveyor relay) │
+│  └─ Controls GPIO14 (Servo)          │
 └──────┬───────────────────────────────┘
        │
        ├─► Relay Module ─► Conveyor Motor

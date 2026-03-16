@@ -19,16 +19,16 @@
 - Statistics tracking
 - Better error handling
 
-**Use this file:** `d:\Waser Size Identifier\ESP32_Controller.ino`
+**Use this file:** `d:\Waser Size Identifier - Copy\esp32_conveyor_servo_controller.ino`
 
 **Upload it:**
 1. Open Arduino IDE
-2. Open `ESP32_Controller.ino`
-3. Update only these 3 lines:
+2. Open `esp32_conveyor_servo_controller.ino`
+3. Update only these lines:
    ```cpp
-   const char* ssid = "Subhash";              // Your WiFi
-   const char* password = "12233447";         // Your WiFi password
-   const char* serverBaseUrl = "http://10.121.22.234:5000";  // Your PC IP:5000
+   const char* WIFI_SSID = "Subhash";         // Your WiFi
+   const char* WIFI_PASS = "12233447";        // Your WiFi password
+   const char* SERVER_HOST = "10.121.22.234"; // Your PC IP running server.py
    ```
 4. Select: **Tools → Board → ESP32 Dev Module**
 5. Click **Upload** ⬆️
@@ -74,7 +74,7 @@
 
 4. **Check Servo Movement**
    - Look at Serial Monitor on ESP32
-   - Should show: `🔄 Servo → 0° (EQUAL (Target))` or 90° or 180°
+   - Mapping: `90°` = EQUAL (target hit), `180°` = LESS, `0°` = GREATER
    - Look at physical servo - should move to that angle
 
 5. **Verify Statistics**
@@ -107,7 +107,7 @@ Web UI           Server              ESP32
   │                │                   │ (motor runs)
   │                │                   │
   │ Show result    ├→ /sort/decision  → Polls every 1s
-  │                │   (angle: 0/90/180) ├→ Servo moves
+   │                │   (angle: 0/90/180) ├→ Servo moves (EQUAL=90, LESS=180, GREATER=0)
   │                │                   │
   │ Update stats   │ [6s cooldown]    │
   │                │                   │
@@ -151,7 +151,7 @@ T=2s    - Washer detected, 2s stable
 
 T=3s    - Measurement done, angle calculated
          Server: COOLDOWN (6s)
-         ESP32 polls: /sort/decision → "0" (or 90/180)
+         ESP32 polls: /sort/decision → "90" (EQUAL) or "180" (LESS) or "0" (GREATER)
          Servo: Moves to angle
 
 T=4s    - Washer sorted to correct bin
@@ -193,7 +193,7 @@ All 10 checks = **✅ COMPLETE**
 | Servo won't move | "▶ CONVEYOR STARTED" but no servo message | Check GPIO26 connection, servo power |
 | Detection doesn't trigger | Real-time shows "IDLE" | Calibrate first, then set target |
 | HTTP errors (502/503) | "⚠ Connection failed" | Check PC IP address in Arduino code |
-| Multiple servo moves | Shows "🔄 Servo → 0°" multiple times | Normal - servo queries every 1s while conveyor running |
+| Multiple servo moves | Shows "[ESP32 SERVO]" logs repeatedly | Normal - ESP32 polls while conveyor running |
 
 ---
 
@@ -203,7 +203,7 @@ Everything is ready to use:
 
 ```
 d:\Waser Size Identifier\
-├── ESP32_Controller.ino              ← Upload this to ESP32
+├── esp32_conveyor_servo_controller.ino  ← Upload this to ESP32 (conveyor + servo)
 ├── ESP32_SETUP_CHECKLIST.md          ← Follow this
 ├── ESP32_INTEGRATION_GUIDE.md        ← Full details
 ├── TROUBLESHOOTING.md                ← If issues
@@ -220,7 +220,7 @@ d:\Waser Size Identifier\
 
 ## 30-Second Summary
 
-1. **Upload `ESP32_Controller.ino`** (update WiFi credentials)
+1. **Upload `esp32_conveyor_servo_controller.ino`** (update WiFi credentials)
 2. **Open Serial Monitor** (verify "WiFi Connected")
 3. **Set target in web UI** (monitor starts, conveyor runs)
 4. **Place washer** (detection & servo test)

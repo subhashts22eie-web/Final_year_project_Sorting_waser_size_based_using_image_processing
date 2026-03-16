@@ -3,7 +3,7 @@ import os
 import socket
 import time
 import threading
-from flask import Flask, jsonify, request, render_template, send_file
+from flask import Flask, jsonify, request, render_template, send_file, Response
 
 from step3_save_image import save_image
 from step7_washer_detection import detect_washer
@@ -14,6 +14,7 @@ from realtime_detection import RealtimeDetectionEngine
 CAMERA_INDEX = 0
 CAMERA_READ_INTERVAL_SEC = 0.03
 AUTO_PROCESS_INTERVAL_SEC = 2.0
+ANGLE_MATCH_TOLERANCE_MM = 3.0
 
 app = Flask(__name__)
 
@@ -58,17 +59,21 @@ auto_stop_event = threading.Event()
 cmd_lock = threading.Lock()
 last_cmd_request_id = None  # Track request ID to prevent duplicates
 
+# Throttled /cmd poll logging (helps diagnose ESP32 resets/network)
+last_cmd_poll_log_time = 0.0
+cmd_poll_count = 0
 
-def classify_angle(final_size_mm, target_mm):
-    """Return 0 for equal, 90 for less, 180 for greater."""
-    target_int = int(round(float(target_mm)))
-    size_int = int(round(float(final_size_mm)))
 
-    if size_int == target_int:
-        return 0, "EQUAL"
-    if size_int < target_int:
-        return 90, "LESS"
-    return 180, "GREATER"
+def classify_angle(measured_mm, target_mm, tolerance_mm=ANGLE_MATCH_TOLERANCE_MM):
+    """Return 90 for near-equal, 180 for less, 0 for greater based on tolerance."""
+    measured = float(measured_mm)
+    target = float(target_mm)
+
+    if abs(measured - target) <= float(tolerance_mm):
+        return 90, "EQUAL"
+    if measured < target:
+        return 180, "LESS"
+    return 0, "GREATER"
 
 
 def camera_worker():
@@ -213,12 +218,13 @@ def run_detection(target_mm=None):
     }
 
     if target_mm is not None:
-        angle, relation = classify_angle(final_size, target_mm)
-        deviation = round(float(final_size) - float(target_mm), 2)
+        angle, relation = classify_angle(measured_mm, target_mm)
+        deviation = round(float(measured_mm) - float(target_mm), 2)
+        is_equal = (relation == "EQUAL")
         response.update({
             "target_mm": float(target_mm),
             "deviation_mm": float(deviation),
-            "is_match": bool(angle == 0),
+            "is_match": bool(is_equal),
             "angle": int(angle),
             "relation": relation
         })
@@ -286,6 +292,28 @@ def image_calibration():
     if not os.path.exists(CALIB_IMG):
         return "No calibration image", 404
     return send_file(CALIB_IMG, mimetype='image/jpeg')
+
+
+@app.route('/image/live')
+def image_live():
+    """Return the latest camera frame as a single JPEG (snapshot).
+
+    Useful as a fallback when some clients can't render MJPEG streaming.
+    """
+    start_camera_worker()
+    frame = get_latest_frame_copy()
+    if frame is None:
+        return "No live frame", 503
+
+    ok, encoded = cv2.imencode('.jpg', frame)
+    if not ok:
+        return "Encode failed", 500
+
+    resp = Response(encoded.tobytes(), mimetype='image/jpeg')
+    resp.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
+    resp.headers['Pragma'] = 'no-cache'
+    resp.headers['Expires'] = '0'
+    return resp
 
 
 def mjpeg_stream_generator():
@@ -429,6 +457,15 @@ def measure():
 
 @app.route('/cmd')
 def receive_cmd():
+    global last_cmd_poll_log_time, cmd_poll_count
+
+    cmd_poll_count += 1
+    now = time.time()
+    if now - last_cmd_poll_log_time >= 2.0:
+        client_ip = request.remote_addr
+        print(f"[SERVER] /cmd polls={cmd_poll_count} from={client_ip} -> {current_conveyor_cmd}")
+        last_cmd_poll_log_time = now
+
     return current_conveyor_cmd
 
 
@@ -443,6 +480,12 @@ def cmd_set():
 
     data = request.get_json(silent=True) or {}
     cmd = str(data.get("command", "")).strip().upper()
+
+    # Log who requested START/STOP (helps diagnose unexpected STOP)
+    try:
+        print(f"[SERVER] /cmd/set from={request.remote_addr} cmd={cmd} body={data}")
+    except Exception:
+        pass
 
     # Get a unique request ID (timestamp + random) to prevent duplicates
     request_id = data.get("request_id", f"{time.time()}")
@@ -504,7 +547,7 @@ def target_status():
 
 @app.route('/target/set', methods=['POST'])
 def target_set():
-    global desired_target_mm, current_conveyor_cmd, auto_processing_enabled, realtime_engine
+    global desired_target_mm, auto_processing_enabled, realtime_engine
 
     data = request.get_json(silent=True) or {}
     target = data.get("target_mm")
@@ -518,17 +561,18 @@ def target_set():
         return jsonify({"ok": False, "error": "target_mm must be > 0"}), 400
 
     desired_target_mm = target
-    current_conveyor_cmd = "START"
     # Use real-time state machine only: detect -> 2s stable -> single capture -> 6s cooldown.
     auto_processing_enabled = False
     start_auto_processing_worker()
 
-    # Enable real-time detection engine
-    if realtime_engine is not None:
+    # Only enable detection if conveyor is currently START (conveyor control is frontend-only)
+    if realtime_engine is not None and current_conveyor_cmd == "START":
         realtime_engine.STABLE_TIME = 2.0
         realtime_engine.COOLDOWN_TIME = 6.0
         realtime_engine.enable(target_mm=target)
         print(f"[SERVER] Real-time engine enabled with target: {target}mm")
+    else:
+        print(f"[SERVER] Target set to {target}mm (conveyor is STOP; waiting for START)")
 
     print(f"[SERVER] Sorting target set by UI: {desired_target_mm}mm")
     return jsonify({"ok": True, "target_mm": desired_target_mm, "command": current_conveyor_cmd})
